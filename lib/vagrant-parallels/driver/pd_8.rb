@@ -392,8 +392,10 @@ module VagrantPlugins
           list
         end
 
-        def register(pvm_file)
-          execute("register", pvm_file)
+        def register(pvm_file, regen_src_uuid=false)
+          args = ['register', pvm_file]
+          args << '--regenerate-src-uuid' if regen_src_uuid
+          execute(*args)
         end
 
         def registered?(uuid)
@@ -441,15 +443,7 @@ module VagrantPlugins
         end
 
         def verify!
-          version
-        end
-
-        def version
-          if execute('--version', retryable: true) =~ /prlctl version ([\d\.]+)/
-            $1.downcase
-          else
-            raise VagrantPlugins::Parallels::Errors::ParallelsInstallIncomplete
-          end
+          execute('--version', retryable: true)
         end
 
         def vm_exists?(uuid)
