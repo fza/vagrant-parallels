@@ -127,7 +127,7 @@ module VagrantPlugins
               # - in host-only (private) network it will be bridged to the 'vnicX' device
               # - in real bridge (public) network it will be bridged to the assigned device
               args.concat(["--type", "bridged", "--iface", adapter[:hostonly]])
-            elsif adapter[:type] == :bridge
+            elsif adapter[:type] == :bridged
               args.concat(["--type", "bridged", "--iface", adapter[:bridge]])
             elsif adapter[:type] == :shared
               args.concat(["--type", "shared"])
@@ -235,7 +235,8 @@ module VagrantPlugins
         end
 
         def read_guest_tools_version
-          read_settings.fetch('GuestTools', {}).fetch('version', nil)
+          tools_version = read_settings.fetch('GuestTools', {}).fetch('version', '')
+          tools_version[/(^\d+\.\d+.\d+)/]
         end
 
         def read_host_info
@@ -274,6 +275,18 @@ module VagrantPlugins
 
         def read_mac_address
           read_settings.fetch('Hardware', {}).fetch('net0', {}).fetch('mac', nil)
+        end
+
+        def read_mac_addresses
+          macs = {}
+          read_settings.fetch('Hardware', {}).each do |device, params|
+            if device =~ /^net(\d+)$/
+              adapter = $1
+              mac = params.fetch('mac')
+              macs[adapter] = mac
+            end
+          end
+          macs
         end
 
         def read_network_interfaces
@@ -414,11 +427,6 @@ module VagrantPlugins
           execute('set', @uuid, '--name', name, :retryable => true)
         end
 
-        def set_power_consumption_mode(optimized)
-          state = optimized ? 'on' : 'off'
-          execute('set', @uuid, '--longer-battery-life', state)
-        end
-
         def share_folders(folders)
           folders.each do |folder|
             # Add the shared folder
@@ -442,8 +450,10 @@ module VagrantPlugins
           execute("unregister", uuid)
         end
 
-        def verify!
-          execute('--version', retryable: true)
+        def unshare_folders(names)
+          names.each do |name|
+            execute("set", @uuid, "--shf-host-del", name)
+          end
         end
 
         def vm_exists?(uuid)

@@ -149,6 +149,12 @@ module VagrantPlugins
         def read_mac_address
         end
 
+        # Returns the network interface card MAC addresses
+        #
+        # @return [Hash<String, String>] Adapter => MAC address
+        def read_mac_addresses
+        end
+
         # Returns a list of network interfaces of the VM.
         #
         # @return [Hash]
@@ -234,10 +240,8 @@ module VagrantPlugins
         def suspend
         end
 
-        # Verifies that the driver is ready to accept work.
-        #
-        # This should raise a VagrantError if things are not ready.
-        def verify!
+        # Unshare folders.
+        def unshare_folders(names)
         end
 
         # Checks if a VM with the given UUID exists.

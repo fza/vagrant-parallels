@@ -146,6 +146,21 @@ shared_examples "parallels desktop driver" do |options|
     end
   end
 
+  describe "read_guest_tools_version" do
+    let(:tools_version) {'9.0.23062.123456-something-else'}
+
+    it "returns Guest Tools version in semantic format: 'x.y.z'" do
+      subject.read_guest_tools_version.should match(/^\d+.\d+\.\d+$/)
+      subject.read_guest_tools_version.should == "9.0.23062"
+    end
+
+    it "returns nil if Guest Tools version is invalid" do
+      settings = {"GuestTools" => {"vesion" => "something_wrong"}}
+      driver.should_receive(:read_settings).and_return(settings)
+      subject.read_guest_tools_version.should be_nil
+    end
+  end
+
   describe "read_guest_ip" do
     let(:content) {'10.200.0.99="1394547632,1800,001c420000ff,01001c420000ff"'}
 
@@ -163,6 +178,14 @@ shared_examples "parallels desktop driver" do |options|
         and_raise(Errno::EACCES)
       expect { subject.read_guest_ip }.
         to raise_error(VagrantPlugins::Parallels::Errors::DhcpLeasesNotAccessible)
+    end
+  end
+
+  describe "read_mac_addresses" do
+    it "returns MAC addresses of all network interface cards" do
+      subject.read_mac_addresses.should be_kind_of(Hash)
+      subject.read_mac_addresses.should include("0")
+      subject.read_mac_addresses["0"].should be_kind_of(String)
     end
   end
 
@@ -233,26 +256,6 @@ shared_examples "parallels desktop driver" do |options|
         and_return(subprocess_result(exit_code: 0))
 
       subject.set_name('new_vm_name')
-    end
-  end
-
-  describe "set_power_consumption_mode" do
-    it "turns 'longer-battery-life' on" do
-      subprocess.should_receive(:execute).
-        with("prlctl", "set", uuid, "--longer-battery-life", "on",
-             an_instance_of(Hash)).
-        and_return(subprocess_result(exit_code: 0))
-
-      subject.set_power_consumption_mode(true)
-    end
-
-    it "turns 'longer-battery-life' off" do
-      subprocess.should_receive(:execute).
-        with("prlctl", "set", uuid, "--longer-battery-life", "off",
-             an_instance_of(Hash)).
-        and_return(subprocess_result(exit_code: 0))
-
-      subject.set_power_consumption_mode(false)
     end
   end
 
